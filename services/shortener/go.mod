@@ -1,6 +1,6 @@
 module github.com/ashtonholgate/url-minifier/services/shortener
 
-go 1.23.6
+go 1.22
 
 require (
 	github.com/cespare/xxhash/v2 v2.1.2 // indirect
