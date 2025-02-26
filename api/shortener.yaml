@@ -1,0 +1,256 @@
+openapi: 3.0.3
+info:
+  title: URL Shortener Service API
+  description: API for creating and managing shortened URLs
+  version: 1.0.0
+
+servers:
+  - url: /api/v1
+    description: Version 1 of the URL shortener API
+
+paths:
+  /urls:
+    post:
+      summary: Create a shortened URL
+      description: Convert a long URL into a shortened version, optionally with a custom alias
+      operationId: createShortUrl
+      tags:
+        - URLs
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateUrlRequest'
+      responses:
+        '201':
+          description: URL successfully shortened
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UrlResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /urls/{id}:
+    get:
+      summary: Get URL details
+      description: Retrieve details about a shortened URL
+      operationId: getUrl
+      tags:
+        - URLs
+      parameters:
+        - $ref: '#/components/parameters/urlId'
+      responses:
+        '200':
+          description: URL details retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UrlResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    put:
+      summary: Update URL details
+      description: Update properties of an existing shortened URL
+      operationId: updateUrl
+      tags:
+        - URLs
+      parameters:
+        - $ref: '#/components/parameters/urlId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateUrlRequest'
+      responses:
+        '200':
+          description: URL updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UrlResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+    delete:
+      summary: Delete a shortened URL
+      description: Remove a shortened URL from the system
+      operationId: deleteUrl
+      tags:
+        - URLs
+      parameters:
+        - $ref: '#/components/parameters/urlId'
+      responses:
+        '204':
+          description: URL deleted successfully
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /{shortCode}:
+    get:
+      summary: Redirect to original URL
+      description: Redirect to the original URL associated with the short code
+      operationId: redirectUrl
+      tags:
+        - Redirect
+      parameters:
+        - name: shortCode
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Short code of the URL
+      responses:
+        '302':
+          description: Redirect to original URL
+          headers:
+            Location:
+              schema:
+                type: string
+              description: The original URL to redirect to
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '410':
+          description: URL has expired or been deleted
+
+components:
+  schemas:
+    CreateUrlRequest:
+      type: object
+      required:
+        - longUrl
+      properties:
+        longUrl:
+          type: string
+          format: uri
+          description: The original URL to be shortened
+        customAlias:
+          type: string
+          pattern: '^[a-zA-Z0-9_-]+$'
+          minLength: 4
+          maxLength: 32
+          description: Optional custom alias for the shortened URL
+        expiresAt:
+          type: string
+          format: date-time
+          description: Optional expiration time for the URL
+
+    UpdateUrlRequest:
+      type: object
+      properties:
+        customAlias:
+          type: string
+          pattern: '^[a-zA-Z0-9_-]+$'
+          minLength: 4
+          maxLength: 32
+          description: New custom alias for the shortened URL
+        expiresAt:
+          type: string
+          format: date-time
+          description: New expiration time for the URL
+
+    UrlResponse:
+      type: object
+      required:
+        - id
+        - shortCode
+        - longUrl
+        - createdAt
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique identifier for the URL
+        shortCode:
+          type: string
+          description: Short code used in the shortened URL
+        longUrl:
+          type: string
+          format: uri
+          description: Original URL
+        customAlias:
+          type: string
+          description: Custom alias if one was specified
+        createdAt:
+          type: string
+          format: date-time
+          description: When the shortened URL was created
+        expiresAt:
+          type: string
+          format: date-time
+          description: When the shortened URL will expire
+        shortUrl:
+          type: string
+          format: uri
+          description: Complete shortened URL
+
+    Error:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+          description: Error code
+        message:
+          type: string
+          description: Error message
+        details:
+          type: object
+          description: Additional error details
+
+  parameters:
+    urlId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+      description: URL identifier
+
+  responses:
+    BadRequest:
+      description: Invalid request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    Conflict:
+      description: Resource conflict
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    TooManyRequests:
+      description: Rate limit exceeded
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+      headers:
+        Retry-After:
+          schema:
+            type: integer
+          description: Number of seconds to wait before retrying
