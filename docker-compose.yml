@@ -1,0 +1,48 @@
+version: '3.8'
+
+services:
+  shortener:
+    build:
+      context: ./services/shortener
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - URL_SHORTENER_MONGODB_URI=mongodb://mongodb:27017
+      - URL_SHORTENER_MONGODB_DATABASE=urlshortener
+      - URL_SHORTENER_REDIS_URI=redis:6379
+      - URL_SHORTENER_REDIS_PASSWORD=
+      - URL_SHORTENER_REDIS_DB=0
+      - URL_SHORTENER_SERVER_PORT=8080
+    depends_on:
+      - mongodb
+      - redis
+    restart: unless-stopped
+    networks:
+      - url-minifier-network
+
+  mongodb:
+    image: mongo:6
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - url-minifier-network
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - url-minifier-network
+
+networks:
+  url-minifier-network:
+    driver: bridge
+
+volumes:
+  mongodb_data:
+  redis_data:

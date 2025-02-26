@@ -1,0 +1,29 @@
+# Git
+.git
+.gitignore
+
+# Docker
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Development and IDE files
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Build artifacts
+bin/
+tmp/
+
+# Data directories
+data/
+
+# Documentation
+*.md
+LICENSE
+
+# Local development files
+.env
+.env.*
