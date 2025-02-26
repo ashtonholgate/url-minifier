@@ -4,8 +4,10 @@ on:
   pull_request:
     branches: [ master ]
     paths:
-      - '**.go'
-      - 'go.*'
+      - 'services/**/*.go'
+      - 'services/**/go.*'
+      - 'pkg/**/*.go'
+      - 'pkg/**/go.*'
       - '.golangci.yml'
 
 jobs:
@@ -26,16 +28,43 @@ jobs:
       - name: Install golangci-lint
         run: curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.54.2
         
-      - name: Run golangci-lint
+      - name: Run golangci-lint on services
+        run: |
+          for d in services/*/; do
+            if [ -f "$d/go.mod" ]; then
+              echo "Running golangci-lint in $d"
+              cd "$d"
+              golangci-lint run ./...
+              cd -
+            fi
+          done
+        
+      - name: Run golangci-lint on pkg
+        if: hashFiles('pkg/go.mod') != ''
+        working-directory: ./pkg
         run: golangci-lint run ./...
         
       - name: Check formatting
         run: |
-          if [ -n "$(gofmt -l .)" ]; then
+          BADLY_FORMATTED=$(find . -path "*/pkg/*.go" -o -path "*/services/*.go" -type f -exec gofmt -l {} \;)
+          if [ -n "$BADLY_FORMATTED" ]; then
             echo "The following files are not formatted correctly:"
-            gofmt -l .
+            echo "$BADLY_FORMATTED"
             exit 1
           fi
           
-      - name: Run Go tests
+      - name: Run Go tests in services
+        run: |
+          for d in services/*/; do
+            if [ -f "$d/go.mod" ]; then
+              echo "Running tests in $d"
+              cd "$d"
+              go test -v ./...
+              cd -
+            fi
+          done
+        
+      - name: Run Go tests in pkg
+        if: hashFiles('pkg/go.mod') != ''
+        working-directory: ./pkg
         run: go test -v ./...
