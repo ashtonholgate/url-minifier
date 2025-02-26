@@ -2,7 +2,6 @@ package repository
 
 import (
 	"context"
-	"time"
 
 	"github.com/ashtonholgate/url-minifier/services/shortener/internal/domain"
 )
